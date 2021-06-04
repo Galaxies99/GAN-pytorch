@@ -1,2 +1,2 @@
-# GAN
-Generative Adversarial Networks
+# GAN-pytorch
+Personal Pytorch Implementations of Generative Adversarial Networks
