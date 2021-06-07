@@ -1,6 +1,6 @@
 # User-defined Files
 .history/
-data/
+data
 stats/
 .DS_Store
 */.DS_Store
