@@ -7,6 +7,10 @@ model:
   discriminator:
     hidden_dim: 64
     channels: 3
+    noise_adding: 
+      activation: True
+      initial_sigma: 0.5
+      annealing_epochs: 100
 
 dataset:
   type: "CelebA"

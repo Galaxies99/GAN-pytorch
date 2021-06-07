@@ -128,6 +128,8 @@ if os.path.isfile(checkpoint_file):
     G.load_state_dict(checkpoint['g_model_state_dict'])
     D.load_state_dict(checkpoint['d_model_state_dict'])
     start_epoch = checkpoint['epoch']
+    G.epoch = start_epoch
+    D.epoch = start_epoch
     logger.info("Checkpoint {} (epoch {}) loaded.".format(checkpoint_file, start_epoch))
 elif MODE == "inference":
     raise AttributeError('There should be a checkpoint file for inference.')
@@ -155,39 +157,25 @@ def combined_train_one_epoch(epoch):
 
             # Train D with real images and fake images
             d_optimizer.zero_grad()
-            labels = torch.ones(cur_batch_size, dtype = torch.float32, device = device)
-            res_real = D(imgs, label = img_labels)
-            loss_real = criterion(res_real, labels)
-
+            loss_real = D.loss(imgs, realness = True, img_labels = img_labels)
             noise = torch.randn(cur_batch_size, latent_dim, dtype = torch.float32, device = device)
             fake_imgs = G(noise, label = img_labels)
-            labels = torch.zeros(cur_batch_size, dtype = torch.float32, device = device)
-            res_fake = D(fake_imgs, label = img_labels)
-            loss_fake = criterion(res_fake, labels)
+            loss_fake = D.loss(fake_imgs, realness = False, img_labels = img_labels)
 
             loss = loss_real + loss_fake
-            loss.backward(retain_graph = True)
+            loss.backward()
             d_optimizer.step()
 
             # Train G with D
             g_optimizer.zero_grad()
-            labels = torch.ones(cur_batch_size, dtype = torch.float32, device = device)
-            res_fake4real = D(fake_imgs, label = img_labels)
-            loss_fake4real = criterion(res_fake4real, labels)
+            loss_fake4real = G.loss(noise, D, img_labels = img_labels)
             loss_fake4real.backward()
             g_optimizer.step()
-
-            # Output logs
-            D_x = res_real.mean().item()
-            D_G_z1 = res_fake.mean().item()
-            D_G_z2 = res_fake4real.mean().item()
             
-            pbar.set_description('Epoch {}, D loss: {:.4f}, G loss: {:.4f}, D(x): {:.4f}, D(G(z)): {:.4f} / {:.4f}, '.format(
-                epoch + 1, loss.item(), loss_fake4real.item(),
-                D_x, D_G_z1, D_G_z2,
-            ))
+            pbar.set_description('Epoch {}, D loss: {:.4f}, G loss: {:.4f}, '.format(epoch + 1, loss.item(), loss_fake4real.item()))
             g_losses.append(loss_fake4real.item())
             d_losses.append(loss.item())
+    
     mean_g_loss = np.array(g_losses).mean()
     mean_d_loss = np.array(d_losses).mean()
     logger.info('Finish training process in epoch {}, mean G loss: {:.8f}, mean D loss: {:.8f}'.format(epoch + 1, mean_g_loss, mean_d_loss))
@@ -209,7 +197,7 @@ def inference(epoch = -1):
     img_labels = img_labels.to(device)
     noise = torch.randn(sample_num, latent_dim, dtype = torch.float32, device = device)
     with torch.no_grad():
-        img = G(noise, label = img_labels)
+        img = G(noise, img_labels = img_labels)
     img = img.detach().cpu()
     nrow = int(np.ceil(np.sqrt(sample_num)))
     generated_dir = os.path.join(stats_dir, 'generated_images')
@@ -248,6 +236,8 @@ def train(start_epoch):
             }
         torch.save(save_dict, os.path.join(stats_dir, 'checkpoint.tar'))
         inference(epoch)
+        G.annealing_update()
+        D.annealing_update()
 
 
 if __name__ == '__main__':
