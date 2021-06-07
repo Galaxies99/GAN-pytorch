@@ -1,0 +1,43 @@
+model:
+  name: "WGAN"
+  latent_dim: 100
+  generator:
+    channels: 3
+    hidden_dim: 64
+  discriminator:
+    hidden_dim: 64
+    channels: 3
+    noise_adding: 
+      activation: False
+
+dataset:
+  type: "CelebA"
+  path: "data"
+  img_size: 64
+  batch_size: 128
+  center_crop: 148
+
+optimizer:
+  generator:
+    type: "RMSprop"
+    params:
+      lr: 0.0002
+  discriminator:
+    type: "RMSprop"
+    params:
+      lr: 0.0002
+
+trainer:
+  max_epoch: 200
+  multigpu: False
+  discriminator_iter: 5
+  clipping:
+    activation: True
+    clipping_limit: 0.01
+
+inferencer:
+  sample_num: 64
+
+stats:
+  stats_dir: "stats"
+  stats_folder: "WGAN-CelebA"

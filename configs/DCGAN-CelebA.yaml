@@ -38,6 +38,9 @@ optimizer:
 trainer:
   max_epoch: 200
   multigpu: False
+  discriminator_iter: 1
+  clipping:
+    activation: False
 
 inferencer:
   sample_num: 64

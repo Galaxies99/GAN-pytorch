@@ -21,5 +21,8 @@ def transform(img_size, center_crop):
         transforms.CenterCrop(center_crop),
         transforms.Resize(img_size),
         transforms.ToTensor(),
-        transforms.Lambda(lambda X: 2 * X - 1.)
+        transforms.Lambda(lambda_func)
     ])
+
+def lambda_func(x):
+    return 2 * x - 1.0

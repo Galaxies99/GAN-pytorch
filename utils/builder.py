@@ -1,3 +1,4 @@
+from models.WGAN import WGAN_Discriminator, WGAN_Generator
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -38,6 +39,9 @@ def model_builder(model_params):
     if model_name == 'DCGAN':
         G = DCGAN_Generator(**g_model_params)
         D = DCGAN_Discriminator(**d_model_params)
+    elif model_name == 'WGAN':
+        G = WGAN_Generator(**g_model_params)
+        D = WGAN_Discriminator(**d_model_params)
     else:
         raise NotImplementedError('Invalid model type.')
     return G, D

@@ -1,0 +1,50 @@
+model:
+  name: "DCGAN"
+  latent_dim: 100
+  generator:
+    channels: 3
+    hidden_dim: 64
+  discriminator:
+    hidden_dim: 64
+    channels: 3
+    noise_adding: 
+      activation: True
+      initial_sigma: 0.5
+      annealing_epochs: 100
+
+dataset:
+  type: "CUB200"
+  path: "data"
+  img_size: 64
+  batch_size: 128
+  center_crop_scale: 1.2
+
+optimizer:
+  generator:
+    type: "AdamW"
+    params:
+      lr: 0.0002
+      betas: !!python/tuple [0.5, 0.999]
+      eps: 0.0000001
+      weight_decay: 0.0
+  discriminator:
+    type: "AdamW"
+    params:
+      lr: 0.0002
+      betas: !!python/tuple [0.5, 0.999]
+      eps: 0.0000001
+      weight_decay: 0.0
+
+trainer:
+  max_epoch: 200
+  multigpu: False
+  discriminator_iter: 1
+  clipping:
+    activation: False
+
+inferencer:
+  sample_num: 64
+
+stats:
+  stats_dir: "stats"
+  stats_folder: "DCGAN-CUB200"

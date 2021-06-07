@@ -85,7 +85,7 @@ if os.path.exists(stats_dir) == False:
     os.makedirs(stats_dir)
 checkpoint_file = os.path.join(stats_dir, 'checkpoint.tar')
 if os.path.isfile(checkpoint_file):
-    checkpoint = torch.load(checkpoint_file)
+    checkpoint = torch.load(checkpoint_file, map_location = device)
     G.load_state_dict(checkpoint['g_model_state_dict'])
     D.load_state_dict(checkpoint['d_model_state_dict'])
     start_epoch = checkpoint['epoch']
@@ -102,6 +102,10 @@ if multigpu:
 
 
 def combined_train_one_epoch(epoch):
+    discriminator_iter = trainer_params.get('discriminator_iter', 1)
+    clipping = trainer_params.get('clipping', {})
+    clipping_activation = clipping.get('activation', False)
+    clipping_limit = clipping.get('clipping_limit', 0.01)
     logger.info('Start combined training process in epoch {}.'.format(epoch + 1))
     G.train()
     D.train()
@@ -117,23 +121,25 @@ def combined_train_one_epoch(epoch):
             cur_batch_size = imgs.shape[0]
 
             # Train D with real images and fake images
-            d_optimizer.zero_grad()
-            loss_real = D.loss(imgs, realness = True, img_labels = img_labels)
-            noise = torch.randn(cur_batch_size, latent_dim, dtype = torch.float32, device = device)
-            fake_imgs = G(noise, label = img_labels)
-            loss_fake = D.loss(fake_imgs, realness = False, img_labels = img_labels)
-
-            loss = loss_real + loss_fake
-            loss.backward()
-            d_optimizer.step()
+            for _ in range(discriminator_iter):
+                d_optimizer.zero_grad()
+                if clipping_activation:
+                    for param in D.parameters():
+                        param.data.clamp_(- clipping_limit, clipping_limit)
+                noise = torch.randn(cur_batch_size, latent_dim, dtype = torch.float32, device = device)
+                fake_imgs = G(noise, label = img_labels)
+                loss = D.loss(imgs, fake_imgs, img_labels = img_labels)
+                loss.backward()
+                d_optimizer.step()
 
             # Train G with D
             g_optimizer.zero_grad()
+            noise = torch.randn(cur_batch_size, latent_dim, dtype = torch.float32, device = device)
             loss_fake4real = G.loss(noise, D, img_labels = img_labels)
             loss_fake4real.backward()
             g_optimizer.step()
             
-            pbar.set_description('Epoch {}, D loss: {:.4f}, G loss: {:.4f}, '.format(epoch + 1, loss.item(), loss_fake4real.item()))
+            pbar.set_description('Epoch {}, D loss: {:.4f}, G loss: {:.4f} '.format(epoch + 1, loss.item(), loss_fake4real.item()))
             g_losses.append(loss_fake4real.item())
             d_losses.append(loss.item())
     
