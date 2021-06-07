@@ -1,0 +1,42 @@
+model:
+  name: "DCGAN"
+  generator:
+    channels: 3
+    latent_dim: 100
+    hidden_dim: 64
+  discriminator:
+    hidden_dim: 64
+    channels: 3
+
+dataset:
+  type: "CelebA"
+  path: "data"
+  img_size: 64
+  batch_size: 128
+  center_crop: 148
+
+optimizer:
+  geneartor:
+    adam_beta1: 0.5
+    adam_beta2: 0.999
+    learning_rate: 0.0002
+    weight_decay: 0.0
+    eps: 0.0000001  
+  discriminator:
+    adam_beta1: 0.5
+    adam_beta2: 0.999
+    learning_rate: 0.0002
+    weight_decay: 0.0
+    eps: 0.0000001
+
+
+trainer:
+  max_epoch: 200
+  multigpu: False
+
+inferencer:
+  sample_num: 64
+
+stats:
+  stats_dir: "stats"
+  stats_folder: "DCGAN-CelebA"
