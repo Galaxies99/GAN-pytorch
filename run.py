@@ -7,11 +7,9 @@ import numpy as np
 import torch.nn as nn
 from tqdm import tqdm
 from utils.logger import ColoredLogger
-from datasets.celeba import CelebADataset
-from datasets.cub200 import Cub200Dataset
+from utils.builder import optimizer_builder, model_builder, dataset_builder
 from torch.utils.data import DataLoader
 import torchvision.utils as tuitls
-from models.DCGAN import DCGAN_Generator, DCGAN_Discriminator
 
 
 logging.setLoggerClass(ColoredLogger)
@@ -46,14 +44,8 @@ inferencer_params = cfg_dict.get('inferencer', {})
 stats_params = cfg_dict.get('stats', {})
 
 logger.info('Building Models ...')
-model_name = model_params.get('name', 'DCGAN')
 latent_dim = model_params.get('latent_dim', 100)
-
-if model_name == 'DCGAN':
-    G = DCGAN_Generator(**g_model_params)
-    D = DCGAN_Discriminator(**d_model_params)
-else:
-    raise NotImplementedError('Invalid model name')
+G, D = model_builder(model_params)
 
 multigpu = trainer_params.get('multigpu', False)
 if multigpu:
@@ -68,25 +60,8 @@ else:
     G.to(device)
     D.to(device)
 
-dataset_type = dataset_params.get('type', 'CelebA')
-if dataset_type == 'CelebA':
-    logger.info('Building {} datasets ...'.format(dataset_type))
-    dataset = CelebADataset(
-        root = dataset_params.get('path', 'data'),
-        split = 'whole',
-        img_size = dataset_params.get('img_size', 64),
-        center_crop = dataset_params.get('center_crop', 148)
-    )
-elif dataset_type == 'CUB200':
-    logger.info('Building {} datasets ...'.format(dataset_type))
-    dataset = Cub200Dataset(
-        root = dataset_params.get('path', 'data'),
-        split = 'whole',
-        img_size = dataset_params.get('img_size', 64),
-        center_crop_scale = dataset_params.get('center_crop_scale', 1.2)
-    )
-else:
-    raise NotImplementedError('Invalid dataset type.')
+logger.info('Building datasets ...')
+dataset = dataset_builder(dataset_params)
 
 logger.info('Building dataloader ...')
 batch_size = dataset_params.get('batch_size', 64)
@@ -99,22 +74,8 @@ dataloader = DataLoader(
 )
 
 logger.info('Building optimizer and learning rate scheduler ...')
-g_optimizer = torch.optim.AdamW(
-    G.parameters(),
-    betas = (g_optimizer_params.get('adam_beta1', 0.5), g_optimizer_params.get('adam_beta2', 0.999)),
-    lr = g_optimizer_params.get('learning_rate', 0.0002),
-    weight_decay = g_optimizer_params.get('weight_decay', 0.01),
-    eps = g_optimizer_params.get('eps', 1e-6)
-)
-d_optimizer = torch.optim.AdamW(
-    D.parameters(),
-    betas = (d_optimizer_params.get('adam_beta1', 0.5), d_optimizer_params.get('adam_beta2', 0.999)),
-    lr = d_optimizer_params.get('learning_rate', 0.0002),
-    weight_decay = d_optimizer_params.get('weight_decay', 0.01),
-    eps = d_optimizer_params.get('eps', 1e-6)
-)
-
-criterion = nn.BCELoss()
+g_optimizer = optimizer_builder(G, g_optimizer_params)
+d_optimizer = optimizer_builder(D, d_optimizer_params)
 
 logger.info('Checking checkpoints ...')
 start_epoch = 0

@@ -1,8 +1,8 @@
 model:
   name: "DCGAN"
+  latent_dim: 100
   generator:
     channels: 3
-    latent_dim: 100
     hidden_dim: 64
   discriminator:
     hidden_dim: 64
@@ -20,19 +20,20 @@ dataset:
   center_crop: 148
 
 optimizer:
-  geneartor:
-    adam_beta1: 0.5
-    adam_beta2: 0.999
-    learning_rate: 0.0002
-    weight_decay: 0.0
-    eps: 0.0000001  
+  generator:
+    type: "AdamW"
+    params:
+      lr: 0.0002
+      betas: !!python/tuple [0.5, 0.999]
+      eps: 0.0000001
+      weight_decay: 0.0
   discriminator:
-    adam_beta1: 0.5
-    adam_beta2: 0.999
-    learning_rate: 0.0002
-    weight_decay: 0.0
-    eps: 0.0000001
-
+    type: "AdamW"
+    params:
+      lr: 0.0002
+      betas: !!python/tuple [0.5, 0.999]
+      eps: 0.0000001
+      weight_decay: 0.0
 
 trainer:
   max_epoch: 200
