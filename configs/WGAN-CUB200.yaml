@@ -40,4 +40,4 @@ inferencer:
 
 stats:
   stats_dir: "stats"
-  stats_folder: "WGAN-CelebA"
+  stats_folder: "WGAN-CUB200"
